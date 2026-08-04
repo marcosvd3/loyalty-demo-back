@@ -13,9 +13,15 @@ export type TenantDocument = HydratedDocument<Tenant>;
  */
 @Schema({ _id: false })
 export class TenantBranding {
-  /** Solo la ubicación: el binario se sirve aparte (hoy estático, después Bunny/S3). */
+  /** Isotipo, la marca en versión compacta. Solo la ubicación: el binario se sirve aparte
+   *  (hoy estático desde el front, después Bunny/S3). */
   @Prop({ trim: true })
   logoUrl?: string;
+
+  /** Logotipo de letras. Separado del isotipo porque tienen proporciones y usos distintos:
+   *  el pase muestra los dos y la landing rotula con el nombre si este falta. */
+  @Prop({ trim: true })
+  wordmarkUrl?: string;
 }
 
 export const TenantBrandingSchema =

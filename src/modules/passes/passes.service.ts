@@ -8,6 +8,7 @@ import { TenantsService } from '../tenants/tenants.service';
 export interface PassView {
   tenantName: string;
   logoUrl?: string;
+  wordmarkUrl?: string;
   /** Nombre visible de la cartilla, el que configura la tienda en su programa. */
   programName: string;
   customerName: string;
@@ -58,6 +59,7 @@ export class PassesService {
     return {
       tenantName: tenant.name,
       logoUrl: tenant.branding?.logoUrl,
+      wordmarkUrl: tenant.branding?.wordmarkUrl,
       programName: program.name,
       customerName: customer.name,
       // El total sale de la tarjeta y no del programa: es el snapshot con el que nació y

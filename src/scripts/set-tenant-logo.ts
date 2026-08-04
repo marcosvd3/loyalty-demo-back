@@ -4,14 +4,15 @@ import { AppModule } from '../app.module';
 import { TenantsService } from '../modules/tenants/tenants.service';
 
 const USAGE =
-  'Uso: npm run set:logo -- "<id o nombre de la tienda>" <url del logo>';
+  'Uso: npm run set:logo -- "<id o nombre de la tienda>" <url del logo> [url del wordmark]';
 
 /**
- * Carga provisional del logo hasta que el panel tenga su uploader. Acepta el nombre además
- * del id porque el id solo queda en la salida del seed y el nombre es lo que se recuerda.
+ * Carga provisional del branding hasta que el panel tenga su uploader. Acepta el nombre
+ * además del id porque el id solo queda en la salida del seed y el nombre es lo que se
+ * recuerda.
  */
 async function bootstrap(): Promise<void> {
-  const [target, logoUrl] = process.argv.slice(2);
+  const [target, logoUrl, wordmarkUrl] = process.argv.slice(2);
 
   if (!target || !logoUrl) {
     console.error(USAGE);
@@ -45,11 +46,17 @@ async function bootstrap(): Promise<void> {
       return;
     }
 
-    const tenant = await tenants.updateBranding(matches[0]._id, { logoUrl });
+    // `wordmarkUrl` solo va si se pasó: el merge de `updateBranding` interpreta `undefined`
+    // como "no tocar", así que omitirlo conserva el que ya estaba cargado.
+    const tenant = await tenants.updateBranding(matches[0]._id, {
+      logoUrl,
+      ...(wordmarkUrl ? { wordmarkUrl } : {}),
+    });
 
-    console.log(`Logo actualizado: ${tenant.name}`);
-    console.log(`  id      : ${tenant._id}`);
-    console.log(`  logoUrl : ${tenant.branding.logoUrl}`);
+    console.log(`Branding actualizado: ${tenant.name}`);
+    console.log(`  id          : ${tenant._id}`);
+    console.log(`  logoUrl     : ${tenant.branding.logoUrl}`);
+    console.log(`  wordmarkUrl : ${tenant.branding.wordmarkUrl ?? '(sin cargar)'}`);
   } finally {
     await app.close();
   }

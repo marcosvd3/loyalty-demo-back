@@ -152,8 +152,9 @@ dos endpoints.
 ```ts
 // response 200
 {
-  name: string;      // nombre de la tienda, para pintar el encabezado del form
-  logoUrl?: string;  // ausente si la tienda todavía no cargó logo
+  name: string;           // nombre de la tienda, para pintar el encabezado del form
+  logoUrl?: string;       // isotipo; ausente si la tienda todavía no cargó branding
+  wordmarkUrl?: string;   // logotipo de letras; si falta, se rotula con `name`
 }
 ```
 
@@ -200,6 +201,7 @@ tienda"`. La misma persona sí puede registrarse en otra tienda sin conflicto.
 {
   tenantName: string;
   logoUrl?: string;
+  wordmarkUrl?: string;
   programName: string;       // nombre visible de la cartilla
   customerName: string;
   stampsRequired: number;    // el "N" del "3/10"

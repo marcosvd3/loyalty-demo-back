@@ -10,6 +10,7 @@ export interface EnrollmentTenantInfo {
   name: string;
   /** Ausente mientras la tienda no haya cargado logo: el front cae al encabezado de texto. */
   logoUrl?: string;
+  wordmarkUrl?: string;
 }
 
 export interface EnrolledCustomer {
@@ -37,7 +38,11 @@ export class EnrollmentService {
   async getTenantInfo(tenantQrToken: string): Promise<EnrollmentTenantInfo> {
     const tenant = await this.tenants.findByQrToken(tenantQrToken);
 
-    return { name: tenant.name, logoUrl: tenant.branding?.logoUrl };
+    return {
+      name: tenant.name,
+      logoUrl: tenant.branding?.logoUrl,
+      wordmarkUrl: tenant.branding?.wordmarkUrl,
+    };
   }
 
   async register(
