@@ -13,6 +13,7 @@ import { TenantConnectionService } from './tenant-connection.service';
       useFactory: (config: ConfigService) => ({
         uri: config.getOrThrow<string>('database.uri'),
         dbName: config.get<string>('database.dbName'),
+        maxPoolSize: config.getOrThrow<number>('database.maxPoolSize'),
       }),
     }),
   ],

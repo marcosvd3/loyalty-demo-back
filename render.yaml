@@ -12,7 +12,12 @@ services:
 
     # `--include=dev` es obligatorio: con NODE_ENV=production, npm omite devDependencies y
     # el build se cae porque @nestjs/cli y typescript viven ahí.
-    buildCommand: npm ci --include=dev && npm run build
+    #
+    # `--maxsockets` es lo que evita el OOM del build: por defecto npm descarga y extrae con
+    # alta concurrencia, y el pico de esa extracción no entra en 512Mi junto con el árbol de
+    # 378 MB. Bajarlo alarga el install pero aplana el pico. `--no-audit --no-fund` sacan dos
+    # pasadas extra que no aportan nada en CI.
+    buildCommand: npm ci --include=dev --no-audit --no-fund --maxsockets=3 && npm run build
     startCommand: npm run start:prod
 
     # Pinga Mongo además de responder 200, así un deploy con la URI mal cargada no queda
@@ -23,6 +28,16 @@ services:
       # PORT no se declara: lo inyecta Render y `app.port` ya lo lee.
       - key: NODE_ENV
         value: production
+
+      # Sin techo, V8 dimensiona el heap contra la memoria del host y no contra el límite
+      # del contenedor, así que crece hasta que Render mata el proceso en vez de que el GC
+      # se ponga agresivo. 384 deja margen para el runtime fuera del heap dentro de 512Mi.
+      - key: NODE_OPTIONS
+        value: '--max-old-space-size=384'
+
+      # El pool contra Atlas es lo que más pesa en instancias chicas.
+      - key: MONGODB_MAX_POOL_SIZE
+        value: '10'
       - key: API_PREFIX
         value: api
 
