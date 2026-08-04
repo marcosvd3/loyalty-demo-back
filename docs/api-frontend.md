@@ -187,11 +187,41 @@ Bunny/S3 y el front no cambia.
 ```
 
 **El `qrToken` de la respuesta es la pieza clave del flujo**: es lo que el cliente muestra
-en el mostrador y lo que el staff escanea. Hasta que exista el módulo de wallet passes, el
-front puede simplemente renderizarlo como QR en pantalla y/o mandarlo por mail.
+en el mostrador y lo que el staff escanea. El front lo guarda en `localStorage` con clave
+`loyalty.pass.<tenantQrToken>` y lo usa para abrir el pase en las visitas siguientes.
 
 Email o cédula repetidos **en esa misma tienda** → 409 `"Ya estás registrado en esta
 tienda"`. La misma persona sí puede registrarse en otra tienda sin conflicto.
+
+#### `GET /passes/:tenantQrToken/:customerQrToken` — PÚBLICO
+
+```ts
+// response 200
+{
+  tenantName: string;
+  logoUrl?: string;
+  programName: string;       // nombre visible de la cartilla
+  customerName: string;
+  stampsRequired: number;    // el "N" del "3/10"
+  earnedStamps: number;
+  availableRewards: number;  // premios ya acreditados, sin canjear
+  code: string;              // el qrToken del cliente, para que la tienda lo escanee
+}
+```
+
+Token de tienda o de cliente inválido → 404.
+
+**Pide los dos tokens y no solo el del cliente** porque los clientes viven en la base de su
+tienda: sin el token del local no hay contra qué base resolver, salvo recorriéndolas todas.
+
+`stampsRequired` sale de la tarjeta del cliente, no del programa. Son valores distintos a
+propósito: la tarjeta guarda el umbral con el que nació, así que cambiar el del programa no
+altera ninguna cartilla en curso.
+
+Es público porque el `qrToken` del cliente ya es la credencial que la tienda escanea — quien
+lo tiene puede usar el pase de todos modos. Por eso mismo **no puede existir un endpoint que
+devuelva ese token a partir de un dato adivinable como el email**: sería regalar los premios
+ajenos a quien itere direcciones.
 
 ---
 

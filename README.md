@@ -110,5 +110,10 @@ del QR. El QR ya impreso no se puede corregir.
 
 ## Estado
 
-Implementados: auth, tenants, enrollment, loyalty, visits, rewards y health. Los módulos de
-customers, promotions, passes y notifications están cableados pero sin endpoints.
+Implementados: auth, tenants, enrollment, loyalty, visits, rewards, health y la vista
+pública del pase (`GET /passes/:tenantQrToken/:customerQrToken`).
+
+Pendiente en `passes`: la generación del pase real de wallet. No hay `.pkpass` de Apple ni
+objeto de Google Wallet — eso necesita certificado del Apple Developer Program y una cuenta
+de emisor de Google, no solo código. Los módulos de customers, promotions y notifications
+están cableados pero sin endpoints.
