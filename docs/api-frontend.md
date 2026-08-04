@@ -453,7 +453,47 @@ y no ir a buscar el premio al catálogo, porque puede haberse renombrado.
 
 ---
 
-### 3.6 Tienda
+### 3.6 Clientes
+
+#### `GET /customers?search=&limit=`
+
+```ts
+// response 200
+{
+  id: string;
+  name: string;
+  lastName: string;
+  identificationNumber: string;
+  email: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+}[]
+```
+
+`search` es una sola caja que busca en documento, correo, nombre y apellido: en el mostrador
+no hay tiempo de elegir un criterio. Sin `search` devuelve los últimos clientes.
+
+**La respuesta no incluye el `qrToken`.** Es la credencial con la que se acreditan sellos y
+se canjean premios, así que no viaja en un listado que devuelve muchos clientes de una.
+
+#### `GET /customers/:id/qr.svg`
+
+QR del pase de **un** cliente, listo para un `<img src>`. Es el camino de recuperación: el
+cliente cambió de teléfono, el nuevo no tiene su credencial guardada, el staff lo identifica
+en persona y le muestra esto para que lo escanee.
+
+Los dos endpoints son para cualquier rol con tienda, incluido `tenant_staff`: quien atiende
+la caja es justamente quien necesita resolverlo.
+
+**No existe ni va a existir una recuperación self-service por documento.** El documento no
+es un secreto y además es enumerable, así que un endpoint que devuelva la credencial a
+partir de él sería regalar los premios a quien itere números. El factor de autenticación
+acá es que la persona está parada frente a la caja.
+
+---
+
+### 3.7 Tienda
 
 #### `GET /tenants` — solo `platform_admin`
 
