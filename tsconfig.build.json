@@ -1,4 +1,12 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Esto es una aplicación, no una librería: nadie consume sus tipos, así que emitir .d.ts
+    // es trabajo tirado. Aplica al build con tsc; el de deploy usa SWC.
+    "declaration": false,
+    // En un checkout limpio no hay .tsbuildinfo previo que reusar, así que lo único que
+    // queda del modo incremental es el costo de armarlo y serializarlo.
+    "incremental": false
+  },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }

@@ -11,13 +11,12 @@ services:
     region: oregon
 
     # `--include=dev` es obligatorio: con NODE_ENV=production, npm omite devDependencies y
-    # el build se cae porque @nestjs/cli y typescript viven ahí.
+    # el build se cae porque @nestjs/cli y @swc/core viven ahí.
     #
-    # `--maxsockets` es lo que evita el OOM del build: por defecto npm descarga y extrae con
-    # alta concurrencia, y el pico de esa extracción no entra en 512Mi junto con el árbol de
-    # 378 MB. Bajarlo alarga el install pero aplana el pico. `--no-audit --no-fund` sacan dos
-    # pasadas extra que no aportan nada en CI.
-    buildCommand: npm ci --include=dev --no-audit --no-fund --maxsockets=3 && npm run build
+    # El build compila con SWC (ver nest-cli.json): tsc pica en ~550 MB y no entra en 512Mi.
+    # No se corre `typecheck` acá a propósito — eso invocaría a tsc y traería de vuelta el
+    # OOM. El chequeo de tipos va en local y en CI, no en el deploy.
+    buildCommand: npm ci --include=dev --no-audit --no-fund && npm run build
     startCommand: npm run start:prod
 
     # Pinga Mongo además de responder 200, así un deploy con la URI mal cargada no queda

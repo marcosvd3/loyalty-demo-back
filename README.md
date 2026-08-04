@@ -43,6 +43,22 @@ RabbitMQ es opcional: con `RABBITMQ_ENABLED=false` la API arranca igual y los ev
 dominio no se publican. Nada del flujo principal depende de ellos — la publicación es
 fire-and-forget y el registro de una visita no espera al broker.
 
+## Build y chequeo de tipos
+
+`npm run build` compila con **SWC**, no con tsc. El motivo es memoria: tsc pica en ~550 MB
+compilando este proyecto y no entra en un contenedor de 512 MB, mientras que SWC hace lo
+mismo en 221 MB y en menos de medio segundo.
+
+La contrapartida es que SWC transpila sin verificar tipos. El chequeo va aparte:
+
+```bash
+npm run typecheck
+```
+
+Correlo antes de pushear, porque **un build verde ya no garantiza que los tipos cierren**.
+No está enganchado al build de deploy a propósito: eso invocaría a tsc y traería de vuelta
+el problema de memoria que este esquema evita.
+
 ## Seed
 
 ```bash
