@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as QRCode from 'qrcode';
 
 import { CustomersService } from '../customers/customers.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
@@ -67,5 +68,32 @@ export class PassesService {
       availableRewards: wallet.availableRewards,
       code: customer.qrToken,
     };
+  }
+
+  /**
+   * QR del pase, para que la tienda lo escanee en el mostrador.
+   *
+   * Encodea el token pelado y no una URL porque es lo que `POST /visits` espera en
+   * `customerQrToken`: envolverlo en un enlace obligaría a la caja a recortarlo.
+   *
+   * Corrección 'M' y no 'H' como el cartel del local: acá el QR se muestra en la pantalla
+   * de un teléfono, sin desgaste que recuperar, y subir el nivel solo agrega módulos que a
+   * ese tamaño achican cada celda y lo vuelven más difícil de leer.
+   */
+  async renderCodeSvg(
+    tenantQrToken: string,
+    customerQrToken: string,
+  ): Promise<string> {
+    const tenant = await this.tenants.findByQrToken(tenantQrToken);
+    const customer = await this.customers.findByQrToken(
+      tenant.dbName,
+      customerQrToken,
+    );
+
+    return QRCode.toString(customer.qrToken, {
+      type: 'svg',
+      errorCorrectionLevel: 'M',
+      margin: 2,
+    });
   }
 }

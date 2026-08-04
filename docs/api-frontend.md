@@ -223,6 +223,14 @@ lo tiene puede usar el pase de todos modos. Por eso mismo **no puede existir un 
 devuelva ese token a partir de un dato adivinable como el email**: sería regalar los premios
 ajenos a quien itere direcciones.
 
+#### `GET /passes/:tenantQrToken/:customerQrToken/qr.svg` — PÚBLICO
+
+SVG del QR del pase, listo para un `<img src>`. Encodea el `qrToken` del cliente **pelado**,
+no una URL: es exactamente lo que `POST /visits` espera en `customerQrToken`, así que lo que
+lea el escáner del mostrador se manda tal cual.
+
+Token de tienda o de cliente inválido → 404.
+
 ---
 
 ### 3.3 Programa de fidelización
