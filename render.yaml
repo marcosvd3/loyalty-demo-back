@@ -1,0 +1,61 @@
+# Blueprint de Render. Vive en la raíz del repo del backend: Render lo busca ahí.
+#
+# Mongo, Redis y RabbitMQ no se declaran acá: Render no ofrece Mongo administrado y el
+# resto va en servicios externos. Las claves marcadas `sync: false` se cargan a mano en el
+# dashboard para que no queden versionadas.
+services:
+  - type: web
+    name: loyalty-api
+    runtime: node
+    plan: free
+    region: oregon
+
+    # `--include=dev` es obligatorio: con NODE_ENV=production, npm omite devDependencies y
+    # el build se cae porque @nestjs/cli y typescript viven ahí.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+
+    # Pinga Mongo además de responder 200, así un deploy con la URI mal cargada no queda
+    # marcado como sano.
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      # PORT no se declara: lo inyecta Render y `app.port` ya lo lee.
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: api
+
+      # Queda expuesto a propósito durante la demo: es la única forma de probar la API
+      # antes de que el front esté montado. Pasar a "false" al terminar las pruebas.
+      - key: SWAGGER_ENABLED
+        value: 'true'
+
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Atlas. La app crea una base por tienda vía `useDb`, así que el usuario necesita
+      # permisos sobre el cluster y no sobre una sola base.
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: loyalty
+
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_KEY_PREFIX
+        value: loyalty
+
+      # Sin broker no se pierde nada del flujo principal: la publicación es fire-and-forget
+      # y el scan no depende de ella. Poner "true" y cargar RABBITMQ_URL si se suma uno.
+      - key: RABBITMQ_ENABLED
+        value: 'false'
+
+      # Ambas apuntan al dominio de Netlify. CORS_ORIGINS acepta lista separada por comas;
+      # APP_PUBLIC_URL es lo que se encodea en el QR impreso, sin barra final.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: APP_PUBLIC_URL
+        sync: false
+      - key: APP_ENROLL_PATH
+        value: /e

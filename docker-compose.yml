@@ -1,0 +1,17 @@
+# Mongo y Redis corren nativos en el host; acá solo va lo que no está instalado localmente.
+services:
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: loyalty-rabbitmq
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq-data:
