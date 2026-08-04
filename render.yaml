@@ -72,4 +72,4 @@ services:
       - key: APP_PUBLIC_URL
         sync: false
       - key: APP_ENROLL_PATH
-        value: /e
+        value: /register

@@ -143,7 +143,7 @@ usuario inexistente, contraseña incorrecta y cuenta desactivada, a propósito.
 
 ### 3.2 Alta pública de clientes (la landing del QR)
 
-El QR impreso en el local apunta a **`{APP_PUBLIC_URL}/e/{tenantQrToken}`**, o sea a una
+El QR impreso en el local apunta a **`{APP_PUBLIC_URL}/{tenantQrToken}/register`**, o sea a una
 ruta del front, no de la API. El front lee el `tenantQrToken` de la URL y lo usa en estos
 dos endpoints.
 

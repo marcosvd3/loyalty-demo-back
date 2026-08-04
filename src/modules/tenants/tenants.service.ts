@@ -91,7 +91,9 @@ export class TenantsService {
     const base = this.config.getOrThrow<string>('app.publicUrl');
     const path = this.config.getOrThrow<string>('app.enrollPath');
 
-    return `${base}${path}/${tenant.qrToken}`;
+    // El token va antes del segmento de la vista: todo lo que cuelga de él pertenece a esa
+    // tienda, incluida la configuración con la que el front se pinta.
+    return `${base}/${tenant.qrToken}${path}`;
   }
 
   toSummary(tenant: TenantDocument): TenantSummary {

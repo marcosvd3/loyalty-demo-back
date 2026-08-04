@@ -17,9 +17,12 @@ export default registerAs('app', () => ({
     '',
   ),
   /**
-   * Ruta del front que recibe el token del QR y pinta el formulario de alta. Tiene que
-   * coincidir con la ruta declarada en el router del front: el QR ya impreso no se puede
-   * corregir, así que un cambio acá invalida los carteles en la calle.
+   * Segmento que va **después** del token en la URL del QR: `/{qrToken}{enrollPath}`.
+   *
+   * El token va primero porque identifica al tenant y es lo que decide con qué
+   * configuración y estilos se pinta todo lo que cuelga de él. Tiene que coincidir con la
+   * ruta declarada en el router del front: el QR ya impreso no se puede corregir, así que
+   * un cambio acá invalida los carteles que estén en la calle.
    */
-  enrollPath: process.env.APP_ENROLL_PATH ?? '/e',
+  enrollPath: process.env.APP_ENROLL_PATH ?? '/register',
 }));
