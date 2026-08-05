@@ -5,7 +5,8 @@ motor de sellos, canje de premios y pase en la wallet nativa del teléfono.
 
 NestJS 11 · MongoDB · Redis · RabbitMQ · Swagger.
 
-El contrato con el front está en [`docs/api-frontend.md`](./docs/api-frontend.md).
+El contrato con el front está en [`docs/api-frontend.md`](./docs/api-frontend.md), y lo que
+falta construir del panel en [`docs/panel-frontend.md`](./docs/panel-frontend.md).
 
 ## Modelo multi-tenant
 
