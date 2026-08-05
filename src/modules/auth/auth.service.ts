@@ -54,4 +54,22 @@ export class AuthService {
       },
     };
   }
+
+  /**
+   * Pide la contraseña actual aunque el token ya pruebe la identidad: un panel abierto en el
+   * mostrador alcanzaría, si no, para que cualquiera se apropie de la cuenta.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.users.findById(userId);
+
+    if (!(await this.users.verifyPassword(user, currentPassword))) {
+      throw new UnauthorizedException('La contraseña actual no coincide');
+    }
+
+    await this.users.setPassword(user, newPassword);
+  }
 }

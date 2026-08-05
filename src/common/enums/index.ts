@@ -6,6 +6,16 @@ export enum UserRole {
   TenantStaff = 'tenant_staff',
 }
 
+/**
+ * Roles que una tienda puede asignar desde su propio panel. `platform_admin` queda afuera a
+ * propósito: es global y no debe poder crearse desde el ABM de un tenant.
+ */
+export const TENANT_ROLES: UserRole[] = [
+  UserRole.TenantOwner,
+  UserRole.TenantManager,
+  UserRole.TenantStaff,
+];
+
 /** Estado de una tienda dentro de la plataforma. `Suspended` corta el acceso al dashboard
  *  sin borrar su base. */
 export enum TenantStatus {

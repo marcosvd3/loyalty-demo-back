@@ -99,8 +99,9 @@ falló), no un string. Conviene normalizarlo en el interceptor del front.
 `platform_admin` (global, sin tienda) · `tenant_owner` · `tenant_manager` · `tenant_staff`.
 
 El staff puede escanear y canjear; **editar la configuración del programa y el catálogo de
-premios es solo owner/manager**. El front debería ocultar esas acciones según
-`user.role` del login, aunque el back las bloquea igual con 403.
+premios es solo owner/manager**, y el **ABM de usuarios del panel es solo owner** (el
+manager únicamente lo lista). El front debería ocultar esas acciones según `user.role` del
+login, aunque el back las bloquea igual con 403.
 
 ---
 
@@ -139,9 +140,105 @@ usuario inexistente, contraseña incorrecta y cuenta desactivada, a propósito.
 
 Útil para rehidratar la sesión al recargar la página.
 
+#### `POST /auth/change-password`
+
+```ts
+// request
+{ currentPassword: string; newPassword: string }   // newPassword: 8 a 72 caracteres
+
+// response 204 — sin body
+```
+
+Cambia la contraseña del usuario del token. Pide la actual aunque el token ya pruebe la
+identidad: un panel abierto en el mostrador alcanzaría, si no, para apropiarse de la cuenta.
+Actual incorrecta → 401.
+
+El token en curso **no se invalida** y la sesión sigue viva hasta que vence: no hay lista de
+revocación. Si el front quiere forzar el reingreso, tiene que limpiar el storage por su
+cuenta.
+
 ---
 
-### 3.2 Alta pública de clientes (la landing del QR)
+### 3.2 Usuarios del panel
+
+Las cuentas con las que la tienda entra al panel. Viven en la base de control, no en la de
+la tienda, pero cada query filtra por el `tenantId` del token: una tienda solo ve y toca su
+propio equipo. Un id de otra tienda devuelve **404**, no 403, para que no sirva de sonda.
+
+El `tenantId` **no se manda nunca en el body** — sale del token. Mandarlo da 400
+(`"property tenantId should not exist"`).
+
+#### `GET /users` — owner, manager
+
+```ts
+// response 200
+Array<{
+  id: string;
+  email: string;
+  name: string;
+  role: 'tenant_owner' | 'tenant_manager' | 'tenant_staff';
+  active: boolean;
+  createdAt: string;
+}>
+```
+
+Orden ascendente por fecha de alta. El manager solo lee: necesita saber quién registró cada
+visita o canje. Crear y editar es **solo owner**.
+
+#### `POST /users` — solo owner
+
+```ts
+// request
+{
+  email: string;
+  password: string;   // inicial, 8 a 72 caracteres; la define el owner
+  name: string;
+  role: 'tenant_owner' | 'tenant_manager' | 'tenant_staff';
+}
+
+// response 201 — el mismo objeto de GET /users
+```
+
+`platform_admin` no es asignable desde acá → 400. Correo ya usado → **409** `"Ya existe una
+cuenta con ese correo"`; el índice es único en toda la plataforma, no por tienda, porque el
+login no sabe todavía a qué tienda pertenece quien entra.
+
+No hay envío de correo: el owner le pasa la contraseña inicial a mano y el usuario la cambia
+con `POST /auth/change-password`.
+
+#### `PATCH /users/:id` — solo owner
+
+```ts
+// request — todos opcionales
+{ name?: string; role?: TenantRole; active?: boolean }
+
+// response 200 — el mismo objeto de GET /users
+```
+
+El correo no se edita: es la identidad con la que la cuenta entra al panel.
+
+`active: false` es baja lógica — le corta el acceso (el login pasa a dar 401) sin borrar la
+cuenta, que queda referenciada en las visitas y canjes que registró.
+
+Un owner **no puede cambiar su propio rol ni desactivarse** → 403. Como solo un owner llega
+a este endpoint, eso garantiza que la tienda nunca se quede sin quién la administre. Sí
+puede cambiarse el nombre.
+
+#### `POST /users/:id/password` — solo owner
+
+```ts
+// request
+{ newPassword: string }   // 8 a 72 caracteres
+
+// response 204 — sin body
+```
+
+Reset del owner, sin pedir la contraseña actual: como no hay envío de correo, es el único
+camino de vuelta para alguien que perdió la suya.
+
+---
+
+### 3.3 Alta pública de clientes (la landing del QR)
 
 El QR impreso en el local apunta a **`{APP_PUBLIC_URL}/{tenantQrToken}/register`**, o sea a una
 ruta del front, no de la API. El front lee el `tenantQrToken` de la URL y lo usa en estos
@@ -235,7 +332,7 @@ Token de tienda o de cliente inválido → 404.
 
 ---
 
-### 3.3 Programa de fidelización
+### 3.4 Programa de fidelización
 
 #### `GET /loyalty/program`
 
@@ -298,7 +395,7 @@ nunca el `stampsRequired` del programa.
 
 ---
 
-### 3.4 Visitas (el scan del mostrador)
+### 3.5 Visitas (el scan del mostrador)
 
 #### `POST /visits` → **200, no 201**
 
@@ -373,7 +470,7 @@ solo "últimos N".
 
 ---
 
-### 3.5 Premios y canjes
+### 3.6 Premios y canjes
 
 #### `GET /rewards?onlyActive=true`
 
@@ -453,7 +550,7 @@ y no ir a buscar el premio al catálogo, porque puede haberse renombrado.
 
 ---
 
-### 3.6 Clientes
+### 3.7 Clientes
 
 #### `GET /customers?search=&limit=`
 
@@ -493,7 +590,7 @@ acá es que la persona está parada frente a la caja.
 
 ---
 
-### 3.7 Tienda
+### 3.8 Tienda
 
 #### `GET /tenants` — solo `platform_admin`
 
@@ -551,7 +648,6 @@ Para que no se planifiquen pantallas contra esto:
 | Ruta | Estado |
 |---|---|
 | `/customers` | controller vacío. **No hay listado ni búsqueda de clientes desde el panel.** Hoy solo se llega a un cliente por su QR. |
-| `/users` | controller vacío. No hay ABM de usuarios del panel; se crean por el seed. |
 | `/promotions` | controller vacío, sin modelo de datos. |
 | `/passes` | controller vacío. **No hay wallet pass de Apple/Google todavía.** El QR del cliente hay que renderizarlo en el front a partir del `qrToken`. |
 | `/notifications` | controller vacío. No hay envío de mails ni push. |
@@ -559,6 +655,11 @@ Para que no se planifiquen pantallas contra esto:
 Otras ausencias a tener en cuenta al diseñar:
 
 - **No hay refresh token.** 401 → login. El access token dura 15 minutos.
+- **No hay "olvidé mi contraseña"** ni envío de correo: quien pierde la suya depende de que
+  el owner se la resetee con `POST /users/:id/password`. Y si quien la pierde es el owner,
+  hace falta tocar la base a mano.
+- **No hay invitación por correo.** El owner crea la cuenta con una contraseña inicial y se
+  la pasa por fuera del sistema.
 - **No hay paginación por cursor** en ningún listado, solo `limit`.
 - **No hay endpoint para crear tiendas** por API: se hace con el script de seed.
 - **No hay cancelación de canjes.** El enum `RedemptionStatus` contempla `Cancelled` pero

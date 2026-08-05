@@ -88,7 +88,7 @@ src/
     ├── health/             health check con ping a Mongo
     ├── auth/               login del panel, JWT
     ├── tenants/            tiendas, branding y QR del local
-    ├── users/              usuarios del panel
+    ├── users/              cuentas del panel y su ABM
     ├── customers/          clientes finales
     ├── enrollment/         alta pública por QR
     ├── loyalty/            programa de sellos y billeteras
@@ -110,9 +110,13 @@ del QR. El QR ya impreso no se puede corregir.
 
 ## Estado
 
-Implementados: auth, tenants, enrollment, loyalty, visits, rewards, health, la vista pública
-del pase (`GET /passes/:tenantQrToken/:customerQrToken`) y la búsqueda de clientes con la
-recuperación del pase en el local.
+Implementados: auth, tenants, users, enrollment, loyalty, visits, rewards, health, la vista
+pública del pase (`GET /passes/:tenantQrToken/:customerQrToken`) y la búsqueda de clientes
+con la recuperación del pase en el local.
+
+El ABM de cuentas del panel es solo para el `tenant_owner` y opera siempre dentro de su
+tienda: el `tenantId` sale del token y nunca del body. No hay envío de correo, así que la
+contraseña inicial la define quien crea la cuenta y el reset lo hace el owner.
 
 Pendiente en `passes`: la generación del pase real de wallet. No hay `.pkpass` de Apple ni
 objeto de Google Wallet — eso necesita certificado del Apple Developer Program y una cuenta

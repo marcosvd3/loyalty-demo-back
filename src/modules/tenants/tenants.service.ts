@@ -67,12 +67,14 @@ export class TenantsService {
   }
 
   /**
-   * Único puente entre el plano de control y el de dominio. El `tenantId` tiene que venir
-   * del claim del JWT y nunca de la red: `TenantConnectionService.getConnection` hace
-   * `useDb` sin validar, así que un `dbName` elegido por el cliente leería la base de
-   * control. `findById` no filtra por estado, por eso la comprobación va acá.
+   * Puerta de entrada de un request autenticado a su tienda. El `tenantId` tiene que venir
+   * del claim del JWT y nunca de la red. `findById` no filtra por estado, por eso la
+   * comprobación de suspensión va acá.
+   *
+   * La usan también los recursos que viven en la base de control, como los usuarios del
+   * panel: no necesitan el `dbName`, pero sí el mismo control de acceso.
    */
-  async resolveDbName(tenantId: string | undefined): Promise<string> {
+  async assertActive(tenantId: string | undefined): Promise<TenantDocument> {
     if (!tenantId) {
       throw new ForbiddenException('El usuario no pertenece a una tienda');
     }
@@ -82,6 +84,17 @@ export class TenantsService {
     if (tenant.status !== TenantStatus.Active) {
       throw new ForbiddenException('Tienda suspendida');
     }
+
+    return tenant;
+  }
+
+  /**
+   * Único puente entre el plano de control y el de dominio:
+   * `TenantConnectionService.getConnection` hace `useDb` sin validar, así que un `dbName`
+   * elegido por el cliente leería la base de control.
+   */
+  async resolveDbName(tenantId: string | undefined): Promise<string> {
+    const tenant = await this.assertActive(tenantId);
 
     return tenant.dbName;
   }
