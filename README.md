@@ -89,7 +89,7 @@ src/
     ├── auth/               login del panel, JWT
     ├── tenants/            tiendas, branding y QR del local
     ├── users/              cuentas del panel y su ABM
-    ├── customers/          clientes finales
+    ├── customers/          clientes finales y su ABM en el panel
     ├── enrollment/         alta pública por QR
     ├── loyalty/            programa de sellos y billeteras
     ├── visits/             registro de visitas por escaneo
@@ -110,9 +110,13 @@ del QR. El QR ya impreso no se puede corregir.
 
 ## Estado
 
-Implementados: auth, tenants, users, enrollment, loyalty, visits, rewards, health, la vista
-pública del pase (`GET /passes/:tenantQrToken/:customerQrToken`) y la búsqueda de clientes
-con la recuperación del pase en el local.
+Implementados: auth, tenants, users, customers, enrollment, loyalty, visits, rewards, health,
+la vista pública del pase (`GET /passes/:tenantQrToken/:customerQrToken`) y la recuperación
+del pase en el local.
+
+El ABM de clientes del panel busca por id, documento, correo, teléfono y nombre, y trae la
+tarjeta de cada uno. El `DELETE` es baja lógica: `visits` y `redemptions` son el ledger con
+el que se auditan los saldos ya otorgados, así que borrar la ficha los dejaría huérfanos.
 
 El ABM de cuentas del panel es solo para el `tenant_owner` y opera siempre dentro de su
 tienda: el `tenantId` sale del token y nunca del body. No hay envío de correo, así que la

@@ -552,27 +552,100 @@ y no ir a buscar el premio al catálogo, porque puede haberse renombrado.
 
 ### 3.7 Clientes
 
-#### `GET /customers?search=&limit=`
+#### `GET /customers?search=&page=&limit=`
+
+> ⚠️ **Cambió la forma de la respuesta**: antes era un array plano, ahora es un objeto
+> paginado con la tarjeta de cada cliente adentro.
 
 ```ts
 // response 200
 {
-  id: string;
-  name: string;
-  lastName: string;
-  identificationNumber: string;
-  email: string;
-  phone: string;
-  status: string;
-  createdAt: string;
-}[]
+  data: Array<{
+    id: string;
+    name: string;
+    lastName: string;
+    identificationNumber: string;
+    email: string;
+    phone: string;
+    status: 'Active' | 'Inactive';
+    createdAt: string;
+    wallet: WalletView | null;    // el mismo objeto de GET /loyalty/wallets/:customerId
+  }>;
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
 ```
 
-`search` es una sola caja que busca en documento, correo, nombre y apellido: en el mostrador
-no hay tiempo de elegir un criterio. Sin `search` devuelve los últimos clientes.
+`search` es una sola caja que busca en **id, documento, correo, teléfono, nombre y
+apellido**: en el mostrador no hay tiempo de elegir un criterio. El id matchea exacto (es un
+cuid2, se pega entero); el resto como subcadena, sin distinguir mayúsculas. Sin `search`
+devuelve los últimos clientes.
+
+`page` arranca en 1 y `limit` tiene tope 100. `wallet` viene en `null` si el alta se cortó
+antes de crear la tarjeta; el primer scan la repara sola.
 
 **La respuesta no incluye el `qrToken`.** Es la credencial con la que se acreditan sellos y
 se canjean premios, así que no viaja en un listado que devuelve muchos clientes de una.
+
+#### `GET /customers/:id`
+
+```ts
+// response 200
+{
+  customer: {
+    id: string;
+    name: string;
+    lastName: string;
+    identificationNumber: string;
+    email: string;
+    phone: string;
+    address?: string;
+    status: 'Active' | 'Inactive';
+    createdAt: string;
+    updatedAt: string;
+  };
+  wallet: WalletView | null;
+  visits: VisitView[];            // las últimas 20, más recientes primero
+  redemptions: RedemptionView[];  // los últimos 20
+}
+```
+
+La ficha para la vista de detalle. Tampoco trae el `qrToken`: para eso está el endpoint del
+QR. El historial completo sale de `GET /visits/customers/:customerId`.
+
+#### `PATCH /customers/:id` — owner, manager
+
+```ts
+// request — todos opcionales
+{
+  name?: string;
+  lastName?: string;
+  identificationNumber?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  status?: 'Active' | 'Inactive';   // reactivar a alguien dado de baja
+}
+
+// response 200 — el mismo objeto `customer` del detalle
+```
+
+`email` e `identificationNumber` son únicos dentro de la tienda: si chocan con otro cliente
+→ **409**. El `qrToken` no es editable (mandarlo da 400): regenerarlo desde un formulario le
+sacaría al cliente la tarjeta que ya tiene en el teléfono.
+
+#### `DELETE /customers/:id` — owner, manager
+
+```ts
+// response 200 — el mismo objeto `customer`, ya con status: 'Inactive'
+```
+
+**Es una baja lógica, no un borrado.** El cliente deja de sumar sellos y de canjear (el scan
+y el canje pasan a dar 409 `"El cliente está inactivo"`), pero sigue apareciendo en el
+listado con su historial intacto: `visits` y `redemptions` son el ledger con el que la
+tienda audita los saldos que ya otorgó, y borrarlo los dejaría apuntando a un cliente
+inexistente.
+
+Se revierte con `PATCH { status: 'Active' }`.
 
 #### `GET /customers/:id/qr.svg`
 
@@ -580,8 +653,9 @@ QR del pase de **un** cliente, listo para un `<img src>`. Es el camino de recupe
 cliente cambió de teléfono, el nuevo no tiene su credencial guardada, el staff lo identifica
 en persona y le muestra esto para que lo escanee.
 
-Los dos endpoints son para cualquier rol con tienda, incluido `tenant_staff`: quien atiende
-la caja es justamente quien necesita resolverlo.
+Los tres endpoints de lectura (listado, ficha y QR) son para cualquier rol con tienda,
+incluido `tenant_staff`: quien atiende la caja es justamente quien necesita resolverlo.
+Editar y dar de baja es **owner/manager**.
 
 **No existe ni va a existir una recuperación self-service por documento.** El documento no
 es un secreto y además es enumerable, así que un endpoint que devuelva la credencial a
@@ -647,7 +721,6 @@ Para que no se planifiquen pantallas contra esto:
 
 | Ruta | Estado |
 |---|---|
-| `/customers` | controller vacío. **No hay listado ni búsqueda de clientes desde el panel.** Hoy solo se llega a un cliente por su QR. |
 | `/promotions` | controller vacío, sin modelo de datos. |
 | `/passes` | controller vacío. **No hay wallet pass de Apple/Google todavía.** El QR del cliente hay que renderizarlo en el front a partir del `qrToken`. |
 | `/notifications` | controller vacío. No hay envío de mails ni push. |
@@ -660,7 +733,10 @@ Otras ausencias a tener en cuenta al diseñar:
   hace falta tocar la base a mano.
 - **No hay invitación por correo.** El owner crea la cuenta con una contraseña inicial y se
   la pasa por fuera del sistema.
-- **No hay paginación por cursor** en ningún listado, solo `limit`.
+- **No hay paginación por cursor.** `/customers` pagina por `page`/`limit`; el resto de los
+  listados solo acepta `limit`.
+- **No hay borrado real de clientes.** El `DELETE` es baja lógica. Si aparece un pedido de
+  eliminación de datos personales, hay que resolverlo aparte.
 - **No hay endpoint para crear tiendas** por API: se hace con el script de seed.
 - **No hay cancelación de canjes.** El enum `RedemptionStatus` contempla `Cancelled` pero
   no hay endpoint que lo haga.

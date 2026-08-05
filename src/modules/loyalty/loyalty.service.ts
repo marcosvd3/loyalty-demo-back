@@ -149,15 +149,35 @@ export class LoyaltyService {
   }
 
   async getWallet(dbName: string, customerId: string): Promise<WalletDocument> {
-    const wallet = await this.walletModel(dbName)
-      .findOne({ customerId })
-      .exec();
+    const wallet = await this.findWallet(dbName, customerId);
 
     if (!wallet) {
       throw new NotFoundException('El cliente todavía no tiene tarjeta');
     }
 
     return wallet;
+  }
+
+  /**
+   * Variante que no lanza. El panel tiene que poder mostrar la ficha de un cliente cuyo alta
+   * se cortó entre el `Customer` y su tarjeta; el scan y el canje, en cambio, no pueden
+   * seguir sin ella y por eso usan `getWallet`.
+   */
+  findWallet(
+    dbName: string,
+    customerId: string,
+  ): Promise<WalletDocument | null> {
+    return this.walletModel(dbName).findOne({ customerId }).exec();
+  }
+
+  /** Batch para el listado del panel: una query por página en vez de una por cliente. */
+  findWalletsByCustomers(
+    dbName: string,
+    customerIds: string[],
+  ): Promise<WalletDocument[]> {
+    return this.walletModel(dbName)
+      .find({ customerId: { $in: customerIds } })
+      .exec();
   }
 
   /**
