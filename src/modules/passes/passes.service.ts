@@ -4,6 +4,10 @@ import * as QRCode from 'qrcode';
 import { CustomersService } from '../customers/customers.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { TenantsService } from '../tenants/tenants.service';
+import type { CustomerDocument } from '../customers/schemas/customer.schema';
+import type { LoyaltyProgramDocument } from '../loyalty/schemas/loyalty-program.schema';
+import type { WalletDocument } from '../loyalty/schemas/wallet.schema';
+import type { TenantDocument } from '../tenants/schemas/tenant.schema';
 
 export interface PassView {
   tenantName: string;
@@ -17,6 +21,17 @@ export interface PassView {
   availableRewards: number;
   /** El `qrToken` del cliente: es lo que la tienda escanea para acreditar la visita. */
   code: string;
+}
+
+/**
+ * El mismo pase, pedido desde el panel por el id del cliente.
+ *
+ * Suma el token de la tienda porque con él y `code` el front arma la URL del QR
+ * escaneable, que es pública y por eso entra en un `<img src>` sin el rodeo de bajarla
+ * como blob para poder mandarle el `Authorization`.
+ */
+export interface PanelPassView extends PassView {
+  tenantQrToken: string;
 }
 
 /**
@@ -56,6 +71,41 @@ export class PassesService {
     const wallet = await this.loyalty.ensureWallet(tenant.dbName, customer._id);
     const program = await this.loyalty.getProgram(tenant.dbName);
 
+    return this.toPassView(tenant, customer, wallet, program);
+  }
+
+  /**
+   * El mismo pase, para la ficha del cliente en el panel.
+   *
+   * Va por el id del cliente y no por su `qrToken`: el panel lista clientes por id y no
+   * tiene la credencial a mano. La tienda sale del token de quien pide, así que acá no
+   * hace falta el `tenantQrToken` de la URL como en la vista pública.
+   *
+   * Lo puede pedir cualquier rol con tienda, incluido el staff: es la misma tarjeta que
+   * ya puede ver pidiendo el QR del cliente en el mostrador.
+   */
+  async getPassForCustomer(
+    tenantId: string | undefined,
+    customerId: string,
+  ): Promise<PanelPassView> {
+    const tenant = await this.tenants.assertActive(tenantId);
+    const customer = await this.customers.findById(tenant.dbName, customerId);
+    const wallet = await this.loyalty.ensureWallet(tenant.dbName, customer._id);
+    const program = await this.loyalty.getProgram(tenant.dbName);
+
+    return {
+      ...this.toPassView(tenant, customer, wallet, program),
+      tenantQrToken: tenant.qrToken,
+    };
+  }
+
+  /** Único armador de la vista, para que la pública y la del panel no se separen. */
+  private toPassView(
+    tenant: TenantDocument,
+    customer: CustomerDocument,
+    wallet: WalletDocument,
+    program: LoyaltyProgramDocument,
+  ): PassView {
     return {
       tenantName: tenant.name,
       logoUrl: tenant.branding?.logoUrl,

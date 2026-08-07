@@ -1,13 +1,30 @@
 import { Controller, Get, Header, Param } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { TenantId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { PassesService, PassView } from './passes.service';
+import { PanelPassView, PassesService, PassView } from './passes.service';
 
 @ApiTags('passes')
 @Controller('passes')
 export class PassesController {
   constructor(private readonly passesService: PassesService) {}
+
+  // Antes de la ruta pública: Express matchea por orden de registro y
+  // `:tenantQrToken/:customerQrToken` también son dos segmentos, así que declarada después
+  // se comería esta con `tenantQrToken = 'customers'`.
+  @Get('customers/:id')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Pase de un cliente por su id, para pintar su tarjeta en el panel.',
+  })
+  getCustomerPass(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+  ): Promise<PanelPassView> {
+    return this.passesService.getPassForCustomer(tenantId, id);
+  }
 
   @Public()
   @Get(':tenantQrToken/:customerQrToken')

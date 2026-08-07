@@ -647,15 +647,55 @@ inexistente.
 
 Se revierte con `PATCH { status: 'Active' }`.
 
+#### `GET /passes/customers/:id`
+
+La tarjeta del cliente, para pintarla en su ficha con el mismo componente que usa el
+recorrido público:
+
+```ts
+// response 200
+{
+  tenantName: string;
+  logoUrl?: string;
+  wordmarkUrl?: string;
+  programName: string;
+  customerName: string;
+  stampsRequired: number;   // el de la tarjeta, no el del programa (ver §3.4)
+  earnedStamps: number;
+  availableRewards: number;
+  code: string;             // el qrToken del cliente
+  tenantQrToken: string;
+}
+```
+
+Es el mismo objeto que devuelve el pase público más el `tenantQrToken`, y ahí está la
+gracia: **con `tenantQrToken` y `code` se arma la URL del QR escaneable**, que es pública y
+por lo tanto entra directo en un `<img src>`:
+
+```ts
+`${environment.apiUrl}/passes/${pass.tenantQrToken}/${pass.code}/qr.svg`
+```
+
+O sea, lo mismo que ya hace `PassSession.qrUrl()`. No hace falta bajar nada como blob.
+
+Va por id porque el panel lista clientes por id y no tiene la credencial a mano; la tienda
+sale del token, así que a diferencia del pase público no lleva `tenantQrToken` en la URL.
+Si el cliente no tiene tarjeta todavía, se la crea en el momento en vez de devolver un 404
+que nadie puede resolver.
+
 #### `GET /customers/:id/qr.svg`
 
-QR del pase de **un** cliente, listo para un `<img src>`. Es el camino de recuperación: el
-cliente cambió de teléfono, el nuevo no tiene su credencial guardada, el staff lo identifica
-en persona y le muestra esto para que lo escanee.
+El mismo QR pero ya renderizado por el back. Es el camino de recuperación: el cliente cambió
+de teléfono, el nuevo no tiene su credencial guardada, el staff lo identifica en persona y le
+muestra esto para que lo escanee.
 
-Los tres endpoints de lectura (listado, ficha y QR) son para cualquier rol con tienda,
-incluido `tenant_staff`: quien atiende la caja es justamente quien necesita resolverlo.
-Editar y dar de baja es **owner/manager**.
+Ojo: este **requiere `Authorization`**, así que no va en un `<img src>` directo — hay que
+bajarlo con `HttpClient` como blob y pasarlo por `URL.createObjectURL()`. Si eso molesta,
+usen la URL pública de `GET /passes/customers/:id`, que es el mismo QR sin ese problema.
+
+Los cuatro endpoints de lectura (listado, ficha, tarjeta y QR) son para cualquier rol con
+tienda, incluido `tenant_staff`: quien atiende la caja es justamente quien necesita
+resolverlo. Editar y dar de baja es **owner/manager**.
 
 **No existe ni va a existir una recuperación self-service por documento.** El documento no
 es un secreto y además es enumerable, así que un endpoint que devuelva la credencial a
